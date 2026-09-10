@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLD Practice Platform</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #f8fafc;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-soft: #eff6ff;
+      --red: #dc2626;
+      --yellow: #d97706;
+      --green: #16a34a;
+      --orange: #ea580c;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+    header.site {
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .container { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+    header.site .container { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .brand { display: flex; align-items: center; gap: 12px; cursor: pointer; background: none; border: 0; color: inherit; font: inherit; }
+    .brand-mark { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px; letter-spacing: -0.5px; }
+    .brand h1 { font-size: 17px; font-weight: 650; letter-spacing: -0.2px; }
+    .brand p { font-size: 12px; color: var(--muted); }
+    .api-status { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .api-status .dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; }
+    .api-status.ok .dot { background: var(--green); }
+    .api-status.down .dot { background: var(--red); }
+
+    main { padding: 40px 0 80px; }
+    .screen { display: none; }
+    .screen.active { display: block; animation: fade 0.18s ease-out; }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    .page-title { font-size: 30px; font-weight: 700; letter-spacing: -0.6px; margin-bottom: 6px; }
+    .page-sub { color: var(--muted); font-size: 16px; margin-bottom: 32px; max-width: 620px; }
+
+    .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+    .card {
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 22px; display: flex; flex-direction: column; gap: 12px;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .card:hover { border-color: #bfdbfe; box-shadow: 0 4px 16px rgba(37, 99, 235, 0.06); }
+    .card .num { font-size: 12px; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .card h3 { font-size: 18px; font-weight: 650; letter-spacing: -0.2px; }
+    .card p { color: var(--muted); font-size: 14px; flex: 1; }
+    .card .meta { font-size: 12px; color: var(--muted); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
+      border: 1px solid transparent; cursor: pointer; font-family: inherit; line-height: 1.2;
+      transition: background .15s, border-color .15s, opacity .15s;
+    }
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-secondary { background: var(--bg); color: var(--text); border-color: var(--border); }
+    .btn-secondary:hover:not(:disabled) { background: var(--surface); }
+    .btn-ghost { background: transparent; color: var(--muted); padding-left: 6px; }
+    .btn-ghost:hover:not(:disabled) { color: var(--text); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-lg { padding: 12px 22px; font-size: 15px; }
+
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .two-col { display: grid; grid-template-columns: 1fr; gap: 28px; }
+    @media (min-width: 900px) { .two-col { grid-template-columns: 5fr 6fr; align-items: start; } }
+
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
+    .panel h4 { font-size: 13px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 8px; }
+    .panel h4:first-of-type { margin-top: 14px; }
+    .panel p { font-size: 15px; }
+    .bullets { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .bullets li { font-size: 14px; padding-left: 18px; position: relative; }
+    .bullets li::before { content: ""; position: absolute; left: 4px; top: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+    .bullets.constraints li::before { background: var(--orange); }
+
+    label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+    textarea {
+      width: 100%; min-height: 420px; padding: 14px 16px; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      border: 1px solid var(--border); border-radius: var(--radius); resize: vertical; color: var(--text); background: var(--bg);
+    }
+    textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+    .field-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; gap: 12px; flex-wrap: wrap; }
+    .counter { font-size: 13px; color: var(--muted); }
+    .counter.ok { color: var(--green); }
+    .hint { font-size: 13px; color: var(--muted); }
+
+    .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 64px 24px; text-align: center; color: var(--muted); }
+    .spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading strong { color: var(--text); font-size: 16px; }
+
+    .alert { border-radius: 8px; padding: 12px 14px; font-size: 14px; border: 1px solid; margin-bottom: 16px; display: flex; gap: 10px; align-items: flex-start; }
+    .alert-error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .alert-info { background: var(--accent-soft); border-color: #bfdbfe; color: #1e3a8a; }
+    .alert-warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+
+    .score-hero { display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: center; padding: 26px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 24px; }
+    @media (max-width: 640px) { .score-hero { grid-template-columns: 1fr; } }
+    .score-big { font-size: 72px; font-weight: 750; letter-spacing: -3px; line-height: 1; }
+    .score-big small { font-size: 22px; letter-spacing: 0; color: var(--muted); font-weight: 500; }
+    .score-red { color: var(--red); } .score-yellow { color: var(--yellow); } .score-green { color: var(--green); }
+    .score-hero h2 { font-size: 20px; font-weight: 650; margin-bottom: 6px; letter-spacing: -0.2px; }
+    .score-hero p { color: var(--muted); font-size: 15px; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 3px 8px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
+    .badge.completed { color: var(--green); border-color: #bbf7d0; background: #f0fdf4; }
+    .badge.failed { color: var(--red); border-color: #fecaca; background: #fef2f2; }
+
+    .dims { display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px; }
+    .dim { border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .dim-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+    .dim-head h3 { font-size: 15px; font-weight: 650; }
+    .dim-head .pts { font-size: 14px; font-weight: 650; font-variant-numeric: tabular-nums; }
+    .bar { height: 8px; border-radius: 999px; background: var(--border); overflow: hidden; margin-bottom: 14px; }
+    .bar > span { display: block; height: 100%; border-radius: 999px; background: var(--accent); transition: width .5s ease; }
+    .bar.red > span { background: var(--red); } .bar.yellow > span { background: var(--yellow); } .bar.green > span { background: var(--green); }
+    .dim-body { display: grid; gap: 10px; }
+    @media (min-width: 720px) { .dim-body { grid-template-columns: repeat(3, 1fr); } }
+    .kv { font-size: 13.5px; }
+    .kv b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 3px; }
+    .kv.evidence b { color: var(--accent); } .kv.concern b { color: var(--orange); } .kv.suggestion b { color: var(--green); }
+
+    .lists { display: grid; gap: 20px; grid-template-columns: 1fr; margin-bottom: 24px; }
+    @media (min-width: 720px) { .lists { grid-template-columns: 1fr 1fr; } }
+    .list-box { border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .list-box h3 { font-size: 15px; font-weight: 650; margin-bottom: 12px; }
+    .list-box ul { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+    .list-box li { display: flex; gap: 10px; font-size: 14px; }
+    .list-box li .ico { flex: 0 0 18px; font-weight: 700; }
+    .strengths .ico { color: var(--green); }
+    .improvements .ico { color: var(--orange); }
+    .summary { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; font-size: 15px; margin-bottom: 28px; }
+    .summary h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 8px; }
+
+    .history { display: flex; flex-direction: column; gap: 12px; }
+    .hist-item { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .hist-row { width: 100%; display: grid; grid-template-columns: 1fr auto auto auto; gap: 18px; align-items: center; padding: 16px 20px; background: var(--bg); border: 0; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+    .hist-row:hover { background: var(--surface); }
+    .hist-row .when { font-size: 14px; font-weight: 600; }
+    .hist-row .when small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .hist-row .score { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 56px; text-align: right; }
+    .hist-row .chev { color: var(--muted); transition: transform .15s; }
+    .hist-item.open .chev { transform: rotate(90deg); }
+    .hist-detail { display: none; border-top: 1px solid var(--border); padding: 20px; background: var(--surface); }
+    .hist-item.open .hist-detail { display: block; }
+    .hist-detail .dim, .hist-detail .list-box, .hist-detail .summary { background: var(--bg); }
+    .hist-detail pre { white-space: pre-wrap; font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 18px; max-height: 260px; overflow: auto; }
+    .empty { text-align: center; color: var(--muted); padding: 56px 20px; border: 1px dashed var(--border); border-radius: var(--radius); }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; display: none; z-index: 100; max-width: 90vw; }
+    .toast.show { display: block; }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="container">
+      <button class="brand" id="brand" aria-label="Go to problem list">
+        <div class="brand-mark" aria-hidden="true">LLD</div>
+        <div>
+          <h1>LLD Practice Platform</h1>
+          <p>Design. Submit. Get rubric-based feedback.</p>
+        </div>
+      </button>
+      <div class="api-status" id="api-status" role="status"><span class="dot"></span><span id="api-status-text">Connecting…</span></div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- SCREEN 1: Problem list -->
+    <section class="screen active" id="screen-list" aria-labelledby="list-title">
+      <h2 class="page-title" id="list-title">Choose a problem</h2>
+      <p class="page-sub">Pick a classic Low-Level Design problem, write your class design in plain text, and get scored on seven dimensions with specific evidence, concerns and suggestions.</p>
+      <div id="list-error"></div>
+      <div class="grid" id="problem-grid">
+        <div class="loading"><div class="spinner" aria-hidden="true"></div><span>Loading problems…</span></div>
+      </div>
+    </section>
+
+    <!-- SCREEN 2: Problem detail + submission -->
+    <section class="screen" id="screen-detail" aria-labelledby="detail-title">
+      <div class="toolbar">
+        <button class="btn btn-ghost" id="back-to-list">← All problems</button>
+        <button class="btn btn-secondary" id="detail-history">View history</button>
+      </div>
+      <div id="detail-content">
+        <h2 class="page-title" id="detail-title"></h2>
+        <p class="page-sub" id="detail-desc"></p>
+        <div class="two-col">
+          <aside class="panel">
+            <h4>Requirements</h4>
+            <ul class="bullets" id="detail-reqs"></ul>
+            <h4>Constraints</h4>
+            <ul class="bullets constraints" id="detail-cons"></ul>
+          </aside>
+          <form id="submit-form" novalidate>
+            <label for="submission">Your design solution</label>
+            <textarea id="submission" name="submission" spellcheck="true"
+              placeholder="Describe your design here. Include: classes and their responsibilities, relationships between classes, key methods, how you handle the main requirements, and any trade-offs you considered."></textarea>
+            <div class="field-foot">
+              <span class="counter" id="char-counter">0 characters · minimum 100</span>
+              <button type="submit" class="btn btn-primary btn-lg" id="submit-btn" disabled>Submit for evaluation</button>
+            </div>
+            <div id="submit-error" style="margin-top:14px"></div>
+          </form>
+        </div>
+      </div>
+      <div id="detail-loading" class="loading" style="display:none">
+        <div class="spinner" aria-hidden="true"></div>
+        <strong>Evaluating your design...</strong>
+        <span>The AI is scoring your submission against the 7-dimension rubric. This usually takes 5–20 seconds.</span>
+      </div>
+    </section>
+
+    <!-- SCREEN 3: Feedback -->
+    <section class="screen" id="screen-feedback" aria-labelledby="feedback-title">
+      <div class="toolbar">
+        <button class="btn btn-ghost" id="feedback-back">← All problems</button>
+        <div class="actions">
+          <button class="btn btn-secondary" id="feedback-history">View History</button>
+          <button class="btn btn-primary" id="feedback-retry">Try Again</button>
+        </div>
+      </div>
+      <h2 class="sr-only" id="feedback-title">Evaluation feedback</h2>
+      <div id="feedback-content"></div>
+    </section>
+
+    <!-- SCREEN 4: History -->
+    <section class="screen" id="screen-history" aria-labelledby="history-title">
+      <div class="toolbar">
+        <button class="btn btn-ghost" id="history-back">← All problems</button>
+        <button class="btn btn-primary" id="history-new">Start New Attempt</button>
+      </div>
+      <h2 class="page-title" id="history-title">Attempt history</h2>
+      <p class="page-sub" id="history-sub"></p>
+      <div id="history-content"></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // ------------------------------------------------------------------ //
+    // Config
+    // ------------------------------------------------------------------ //
+    // When opened from disk (file://) talk to the local backend. When served
+    // by FastAPI itself (GET /), reuse the current origin so it also works
+    // behind a proxy/preview URL.
+    const API_BASE = window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null'
+      ? 'http://localhost:8000'
+      : window.location.origin;
+
+    const DIMENSIONS = [
+      { key: 'requirement_understanding', label: 'Requirement understanding', max: 10 },
+      { key: 'class_responsibilities',    label: 'Class responsibilities',    max: 20 },
+      { key: 'coupling_cohesion',         label: 'Coupling & cohesion',       max: 15 },
+      { key: 'abstraction',               label: 'Abstraction & interfaces',  max: 15 },
+      { key: 'extensibility',             label: 'Extensibility',             max: 20 },
+      { key: 'edge_cases',                label: 'Edge cases',                max: 10 },
+      { key: 'explanation_quality',       label: 'Explanation quality',       max: 10 },
+    ];
+    const MIN_CHARS = 100;
+
+    const state = { problems: [], problem: null, attempt: null };
+
+    // ------------------------------------------------------------------ //
+    // Helpers
+    // ------------------------------------------------------------------ //
+    const $ = (id) => document.getElementById(id);
+
+    function esc(value) {
+      return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function bullets(text) {
+      return String(text || '').split('\n').map((l) => l.replace(/^\s*[-*•]\s*/, '').trim()).filter(Boolean);
+    }
+
+    function scoreClass(pct) {
+      if (pct < 40) return 'red';
+      if (pct <= 70) return 'yellow';
+      return 'green';
+    }
+
+    function fmtDate(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    function relTime(iso) {
+      const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+      if (diff < 60) return 'just now';
+      if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)} h ago`;
+      return `${Math.floor(diff / 86400)} d ago`;
+    }
+
+    function alertHtml(kind, msg) {
+      return `<div class="alert alert-${kind}" role="alert">${esc(msg)}</div>`;
+    }
+
+    let toastTimer;
+    function toast(msg) {
+      const el = $('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+    }
+
+    async function api(path, options = {}) {
+      let res;
+      try {
+        res = await fetch(API_BASE + path, {
+          headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+          ...options,
+        });
+      } catch (err) {
+        throw new Error(`Cannot reach the backend at ${API_BASE}. Is uvicorn running?`);
+      }
+      let body = null;
+      try { body = await res.json(); } catch (_) { /* non-JSON body */ }
+      if (!res.ok) {
+        const detail = body && (body.detail || body.message);
+        throw new Error(detail ? `${res.status}: ${detail}` : `Request failed with status ${res.status}`);
+      }
+      return body;
+    }
+
+    function show(screen) {
+      document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
+      $(`screen-${screen}`).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ------------------------------------------------------------------ //
+    // Screen 1: problem list
+    // ------------------------------------------------------------------ //
+    async function loadProblems() {
+      const grid = $('problem-grid');
+      $('list-error').innerHTML = '';
+      try {
+        state.problems = await api('/problems');
+        if (!state.problems.length) {
+          grid.innerHTML = '<div class="empty">No problems found. Run <code>python seed_data.py</code> in the backend folder.</div>';
+          return;
+        }
+        grid.innerHTML = state.problems.map((p, i) => `
+          <article class="card">
+            <span class="num">Problem ${i + 1}</span>
+            <h3>${esc(p.title)}</h3>
+            <p>${esc(p.description)}</p>
+            <span class="meta">${bullets(p.requirements).length} requirements · ${bullets(p.constraints).length} constraints</span>
+            <button class="btn btn-primary" data-practice="${p.id}">Practice</button>
+          </article>`).join('');
+      } catch (err) {
+        grid.innerHTML = '';
+        $('list-error').innerHTML = alertHtml('error', err.message);
+      }
+    }
+
+    $('problem-grid').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-practice]');
+      if (btn) openProblem(Number(btn.dataset.practice));
+    });
+
+    // ------------------------------------------------------------------ //
+    // Screen 2: detail + submission
+    // ------------------------------------------------------------------ //
+    function openProblem(id, { keepText = false } = {}) {
+      const problem = state.problems.find((p) => p.id === id);
+      if (!problem) return;
+      state.problem = problem;
+      $('detail-title').textContent = problem.title;
+      $('detail-desc').textContent = problem.description;
+      $('detail-reqs').innerHTML = bullets(problem.requirements).map((r) => `<li>${esc(r)}</li>`).join('');
+      $('detail-cons').innerHTML = bullets(problem.constraints).map((c) => `<li>${esc(c)}</li>`).join('');
+      if (!keepText) $('submission').value = '';
+      $('submit-error').innerHTML = '';
+      updateCounter();
+      setEvaluating(false);
+      show('detail');
+      $('submission').focus();
+    }
+
+    function updateCounter() {
+      const len = $('submission').value.trim().length;
+      const counter = $('char-counter');
+      const ok = len >= MIN_CHARS;
+      counter.textContent = ok ? `${len.toLocaleString()} characters` : `${len} characters · ${MIN_CHARS - len} more needed`;
+      counter.classList.toggle('ok', ok);
+      $('submit-btn').disabled = !ok;
+    }
+    $('submission').addEventListener('input', updateCounter);
+
+    function setEvaluating(on) {
+      $('detail-content').style.display = on ? 'none' : '';
+      $('detail-loading').style.display = on ? 'flex' : 'none';
+    }
+
+    $('submit-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = $('submission').value.trim();
+      if (text.length < MIN_CHARS || !state.problem) return;
+      $('submit-error').innerHTML = '';
+      setEvaluating(true);
+      try {
+        const res = await api('/attempts', {
+          method: 'POST',
+          body: JSON.stringify({ problem_id: state.problem.id, submission_text: text }),
+        });
+        if (res.status !== 'completed') {
+          setEvaluating(false);
+          $('submit-error').innerHTML = alertHtml('error', `${res.message}. Your text is preserved - fix the backend configuration and submit again.`);
+          return;
+        }
+        const attempt = await api(`/attempts/${res.attempt_id}`);
+        renderFeedback(attempt);
+        show('feedback');
+      } catch (err) {
+        setEvaluating(false);
+        $('submit-error').innerHTML = alertHtml('error', err.message);
+      }
+    });
+
+    // ------------------------------------------------------------------ //
+    // Screen 3: feedback
+    // ------------------------------------------------------------------ //
+    function dimensionsHtml(ev) {
+      return `<div class="dims">${DIMENSIONS.map((d) => {
+        const score = ev[`${d.key}_score`] ?? 0;
+        const pct = Math.round((score / d.max) * 100);
+        return `
+          <article class="dim">
+            <div class="dim-head"><h3>${d.label}</h3><span class="pts">${score} / ${d.max}</span></div>
+            <div class="bar ${scoreClass(pct)}" role="progressbar" aria-valuenow="${score}" aria-valuemin="0" aria-valuemax="${d.max}" aria-label="${d.label}"><span style="width:${pct}%"></span></div>
+            <div class="dim-body">
+              <div class="kv evidence"><b>Evidence</b>${esc(ev[`${d.key}_evidence`]) || '<i>—</i>'}</div>
+              <div class="kv concern"><b>Concern</b>${esc(ev[`${d.key}_concern`]) || '<i>—</i>'}</div>
+              <div class="kv suggestion"><b>Suggestion</b>${esc(ev[`${d.key}_suggestion`]) || '<i>—</i>'}</div>
+            </div>
+          </article>`;
+      }).join('')}</div>`;
+    }
+
+    function listsHtml(ev) {
+      const li = (items, ico) => (items || []).map((s) => `<li><span class="ico" aria-hidden="true">${ico}</span><span>${esc(s)}</span></li>`).join('') || '<li><span>—</span></li>';
+      return `
+        <div class="lists">
+          <div class="list-box strengths"><h3>Top strengths</h3><ul>${li(ev.top_strengths, '✓')}</ul></div>
+          <div class="list-box improvements"><h3>Top improvements</h3><ul>${li(ev.top_improvements, '→')}</ul></div>
+        </div>
+        <div class="summary"><h3>Summary</h3><p>${esc(ev.summary)}</p></div>`;
+    }
+
+    function evaluationHtml(attempt, { hero = true } = {}) {
+      const ev = attempt.evaluation;
+      if (!ev) {
+        return alertHtml(attempt.status === 'failed' ? 'error' : 'warn',
+          attempt.status === 'failed'
+            ? 'This attempt failed during evaluation (no feedback was stored). Check the backend logs / GEMINI_API_KEY and try again.'
+            : `This attempt is still ${attempt.status}.`);
+      }
+      const cls = scoreClass(ev.overall_score);
+      const heroHtml = hero ? `
+        <div class="score-hero">
+          <div class="score-big score-${cls}">${ev.overall_score}<small>/100</small></div>
+          <div>
+            <span class="badge completed">${esc(attempt.status)}</span>
+            <h2 style="margin-top:8px">${esc(state.problem ? state.problem.title : 'Evaluation')}</h2>
+            <p>Submitted ${fmtDate(attempt.created_at)} · ${attempt.submission_text.length.toLocaleString()} characters</p>
+          </div>
+        </div>` : '';
+      return heroHtml + dimensionsHtml(ev) + listsHtml(ev);
+    }
+
+    function renderFeedback(attempt) {
+      state.attempt = attempt;
+      $('feedback-content').innerHTML = evaluationHtml(attempt);
+    }
+
+    // ------------------------------------------------------------------ //
+    // Screen 4: history
+    // ------------------------------------------------------------------ //
+    async function openHistory() {
+      if (!state.problem) return;
+      show('history');
+      $('history-sub').textContent = state.problem.title;
+      const box = $('history-content');
+      box.innerHTML = '<div class="loading"><div class="spinner" aria-hidden="true"></div><span>Loading attempts…</span></div>';
+      try {
+        const attempts = await api(`/history/${state.problem.id}`);
+        if (!attempts.length) {
+          box.innerHTML = '<div class="empty">No attempts yet for this problem. Start your first one!</div>';
+          return;
+        }
+        box.innerHTML = `<div class="history">${attempts.map((a, i) => {
+          const ev = a.evaluation;
+          const score = ev ? ev.overall_score : null;
+          const cls = score === null ? '' : `score-${scoreClass(score)}`;
+          return `
+            <div class="hist-item" id="hist-${a.id}">
+              <button class="hist-row" data-toggle="${a.id}" aria-expanded="false" aria-controls="hist-detail-${a.id}">
+                <span class="when">Attempt #${attempts.length - i}<small>${fmtDate(a.created_at)} · ${relTime(a.created_at)}</small></span>
+                <span class="badge ${esc(a.status)}">${esc(a.status)}</span>
+                <span class="score ${cls}">${score === null ? '—' : score}</span>
+                <span class="chev" aria-hidden="true">›</span>
+              </button>
+              <div class="hist-detail" id="hist-detail-${a.id}">
+                <h4 style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Submission</h4>
+                <pre>${esc(a.submission_text)}</pre>
+                ${evaluationHtml(a, { hero: false })}
+              </div>
+            </div>`;
+        }).join('')}</div>`;
+      } catch (err) {
+        box.innerHTML = alertHtml('error', err.message);
+      }
+    }
+
+    $('history-content').addEventListener('click', (e) => {
+      const row = e.target.closest('[data-toggle]');
+      if (!row) return;
+      const item = $(`hist-${row.dataset.toggle}`);
+      const open = item.classList.toggle('open');
+      row.setAttribute('aria-expanded', String(open));
+    });
+
+    // ------------------------------------------------------------------ //
+    // Navigation wiring
+    // ------------------------------------------------------------------ //
+    const goList = () => { show('list'); };
+    $('brand').addEventListener('click', goList);
+    $('back-to-list').addEventListener('click', goList);
+    $('feedback-back').addEventListener('click', goList);
+    $('history-back').addEventListener('click', goList);
+    $('detail-history').addEventListener('click', openHistory);
+    $('feedback-history').addEventListener('click', openHistory);
+    // Try Again keeps the previous text so the learner can iterate on it.
+    $('feedback-retry').addEventListener('click', () => openProblem(state.problem.id, { keepText: true }));
+    $('history-new').addEventListener('click', () => openProblem(state.problem.id));
+
+    // Ctrl/Cmd+Enter submits from the textarea.
+    $('submission').addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) {
+        e.preventDefault();
+        $('submit-form').requestSubmit();
+      }
+    });
+
+    // ------------------------------------------------------------------ //
+    // Boot
+    // ------------------------------------------------------------------ //
+    async function checkHealth() {
+      const el = $('api-status');
+      try {
+        await api('/health');
+        el.classList.add('ok'); el.classList.remove('down');
+        $('api-status-text').textContent = `API connected`;
+      } catch (_) {
+        el.classList.add('down'); el.classList.remove('ok');
+        $('api-status-text').textContent = 'API offline';
+      }
+    }
+
+    checkHealth();
+    loadProblems();
+  </script>
+</body>
+</html>
