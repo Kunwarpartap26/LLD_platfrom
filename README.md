@@ -81,6 +81,6 @@ FORCE_HEURISTIC_EVALUATOR=0 GEMINI_API_KEY=... pytest tests/test_evaluator.py
 
 1. Create a key at <https://aistudio.google.com/app/apikey>.
 2. `cp backend/.env.example backend/.env` and set `GEMINI_API_KEY=AIza...`.
-3. (Optional) set `GEMINI_MODEL` if you want a different model than `gemini-1.5-flash`.
+3. (Optional) set `GEMINI_MODEL` if you want a different model than `gemini-3.8-flash`.
 4. Restart uvicorn. The `/attempts` endpoint now calls Gemini; the feedback screen will show real evidence quotes instead of the "Heuristic evaluator" notice.
 5. If a call fails (bad key, quota, model retired) the attempt is stored with `status: "failed"`, the API returns `{"status": "failed", "message": "Evaluation failed: ..."}`, and the UI keeps your text so you can fix the config and resubmit.
